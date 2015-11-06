@@ -220,6 +220,8 @@ class MyApp(App):
         spin_val = gui.SpinBox(80, DEFAULT_HEIGHT,
                                defaultValue=current_value,
                                min=range_min, max=range_max, step=step)
+        # https://github.com/dddomodossola/remi/issues/49
+        spin_val.attributes[spin_val.EVENT_ONKEYPRESS] = 'return event.charCode >= 48 && event.charCode <= 57'
         spin_val.set_on_change_listener(self, callback_cb_name)
 
         item = gui.TableItem()
@@ -328,14 +330,12 @@ class MyApp(App):
 
     def create_enum_row(self, param_name, description, current_value,
                         callback_cb_name, enums):
-        print "create_enum_row"
         row = gui.TableRow()
         param_name = gui.Label(100,
                                10,
                                param_name)
         param_name.attributes['title'] = description
         dropdown = gui.DropDown(300, DEFAULT_HEIGHT)
-        dropdown.set_on_change_listener(self, callback_cb_name)
 
         # Fill dropdown
         for idx, enum in enumerate(enums):
@@ -343,12 +343,13 @@ class MyApp(App):
             value = enum['value']
             name = enum['name']
             type_enum = enum['type']
+            ddi_text = name + " (" + str(value) + ")"
             ddi = gui.DropDownItem(300, DEFAULT_HEIGHT,
-                                   name + " (" + str(value) + ")")
+                                   ddi_text)
             ddi.attributes['title'] = description_enum
             dropdown.append(idx, ddi)
-
-        dropdown.select_by_key(current_value)
+            if idx == current_value:
+                dropdown.select_by_key(idx)
 
         item = gui.TableItem()
         item.append(0, param_name)
@@ -373,8 +374,10 @@ class MyApp(App):
         item.append(4, "")
         row.append(4, item)
 
+        dropdown.set_on_change_listener(self, callback_cb_name)
+
         # return the row itself and the setter func list
-        return row, [dropdown.set_value]
+        return row, [dropdown.select_by_key]
 
 
 if __name__ == "__main__":
