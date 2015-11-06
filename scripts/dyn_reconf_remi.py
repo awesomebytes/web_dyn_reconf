@@ -256,7 +256,7 @@ class MyApp(App):
     def create_str_row(self, param_name, description,
                        current_value, callback_cb_name):
         row = gui.TableRow()
-        param_name = gui.Label(100,
+        param_name = gui.Label(120,
                                10,
                                param_name)
         param_name.attributes['title'] = description
@@ -296,7 +296,7 @@ class MyApp(App):
     def create_bool_row(self, param_name, description,
                         current_value, callback_cb_name):
         row = gui.TableRow()
-        param_name = gui.Label(100,
+        param_name = gui.Label(120,
                                10,
                                param_name)
         param_name.attributes['title'] = description
@@ -383,6 +383,9 @@ class MyApp(App):
 if __name__ == "__main__":
     rospy.init_node('web_dyn_reconf')
     server.DEBUG_MODE = 2
-    app = server.Server(MyApp, start=True, address="192.168.200.132", port=8081,
+    app = server.Server(MyApp, start=True,
+                        # address="192.168.200.132",
+                        address="127.0.0.1",
+                        port=8081,
                         multiple_instance=True)
     rospy.spin()

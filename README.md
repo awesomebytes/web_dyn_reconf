@@ -7,7 +7,9 @@ Acces a dynamic reconfigure client just on your browser in any device!
 
 Using REMI as web interface bridge. https://github.com/dddomodossola/remi
 
-sudo pip install https://github.com/dddomodossola/remi/master/master.zip
+sudo pip install https://github.com/dddomodossola/remi/archive/master.zip
+
+rosrun web_dyn_reconf dyn_reconf_remi.py
 
 
 
