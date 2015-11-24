@@ -8,9 +8,22 @@ from ast import literal_eval
 from dynamic_reconfigure import client as drc
 from dynamic_reconfigure import find_reconfigure_services
 
-DEFAULT_WIDTH = 700
+DEFAULT_WIDTH = 800
 DEFAULT_HEIGHT = 25
 
+# NAME_L_SIZE = 200
+# MIN_L_SIZE = 90
+# EDIT1_SIZE = 300
+# MAX_L_SIZE = 90
+# EDIT2_SIZE = 90
+#FIELD_HEIGHT = 10
+NAME_L_SIZE = -1
+MIN_L_SIZE = -1
+EDIT1_SIZE = -1
+MAX_L_SIZE = -1
+EDIT2_SIZE = -1
+FIELD_HEIGHT = -1
+SLIDER_SIZE = 300
 
 class MyApp(App):
 
@@ -20,15 +33,24 @@ class MyApp(App):
     def main(self, name='world'):
         # the arguments are	width - height - layoutOrientationHorizontal
         self.dyn_rec_client = None
-        self.wid = gui.Widget(DEFAULT_WIDTH+100, 1000, False, 20)
-        self.hor_servers = gui.Widget(500, 20, True, 10)
-        self.bt = gui.Button(100, 30, 'Refresh list')
+        #self.wid = gui.Widget(DEFAULT_WIDTH+100, 1000, False, 20)
+        self.wid = gui.Widget(-1, -1, gui.Widget.LAYOUT_VERTICAL, 20)
+        #self.hor_servers = gui.Widget(500, 20, True, 10)
+
+        #self.hor_servers = gui.Widget(-1, -1, gui.Widget.LAYOUT_HORIZONTAL, 20)
+        self.hor_servers = gui.Widget(-1, -1, gui.Widget.LAYOUT_HORIZONTAL, 20)
+        #self.bt = gui.Button(100, 30, 'Refresh list')
+        self.bt = gui.Button(-1, -1, 'Refresh Dynamic Reconfigure Servers list')
         self.bt.set_on_click_listener(self, 'refresh_servers')
 
         self.hor_servers.append(1, self.bt)
-        self.refresh_servers()
+        # This makes the button not be left
+        self.bt.style['display'] = 'block'
+        self.bt.style['margin'] = '10px auto'
+        self.bt.style['float'] = 'none'
 
-        self.wid.append(1, self.hor_servers)
+        self.refresh_servers()
+        #self.hor_servers.style['padding-bottom'] = '20px'
 
         # returning the root widget
         return self.wid
@@ -42,13 +64,11 @@ class MyApp(App):
 
     def on_dropdown_change(self, value):
         print "Dropdown changed to: " + str(value)
-        # TODO: Generate the dynamic reconfigure stuff here
 
         # If we had a previous client, disconnect it
         if self.dyn_rec_client is not None:
             self.dyn_rec_client.close()
         # Get new client
-        # TODO: update all field when config_callback is called
         self.dyn_rec_client = drc.Client(value, timeout=10.0)
 
         # Get a configuration which ensures we'll have the description too
@@ -56,19 +76,20 @@ class MyApp(App):
         self.gui_set_funcs_for_param = {}
         params_list = self.dyn_rec_client.group_description['parameters']
         if params_list is not None:
-            table = gui.Table(DEFAULT_WIDTH, DEFAULT_HEIGHT * len(params_list))
+            #table = gui.Table(DEFAULT_WIDTH, DEFAULT_HEIGHT * len(params_list))
+            table = gui.Table(-1, -1)
             row = gui.TableRow()
             item = gui.TableTitle()
             item.append(str(id(item)), 'Param name')
             row.append(str(id(item)), item)
             item = gui.TableTitle()
-            item.append(str(id(item)), '')
+            item.append(str(id(item)), 'Min')
             row.append(str(id(item)), item)
             item = gui.TableTitle()
             item.append(str(id(item)), 'Edit')
             row.append(str(id(item)), item)
             item = gui.TableTitle()
-            item.append(str(id(item)), '')
+            item.append(str(id(item)), 'Max')
             row.append(str(id(item)), item)
             item = gui.TableTitle()
             item.append(str(id(item)), 'Edit2')
@@ -152,7 +173,11 @@ class MyApp(App):
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.append(idx, bool_wid)
 
+
         self.wid.append(2, table)
+        # This must be done later on! HACK! (append sets a margin)
+        # This makes the table not stick left, but float in the middle
+        table.style['margin'] = '10px auto'
 
         # Once the GUI is setup, setup the callback for new configs
         self.dyn_rec_client.set_config_callback(self.dyn_rec_conf_callback)
@@ -195,40 +220,50 @@ class MyApp(App):
         self.dynamic_reconfigure_servers = find_reconfigure_services()
         rospy.loginfo("Found dynamic reconfigure servers:\n" +
                       str(self.dynamic_reconfigure_servers))
-        self.dropdown = gui.DropDown(200, 20)
-        choose_ddi = gui.DropDownItem(200, 20, "Choose server...")
+        #self.dropdown = gui.DropDown(200, 20)
+        self.dropdown = gui.DropDown(-1, -1)
+        #choose_ddi = gui.DropDownItem(200, 20, "Choose server...")
+        choose_ddi = gui.DropDownItem(-1, -1, "Choose server...")
         self.dropdown.append(0, choose_ddi)
         for idx, server_name in enumerate(self.dynamic_reconfigure_servers):
-            ddi = gui.DropDownItem(200, 20, server_name)
+            #ddi = gui.DropDownItem(200, 20, server_name)
+            ddi = gui.DropDownItem(-1, -1, server_name)
             self.dropdown.append(idx+1, ddi)
 
         self.dropdown.set_on_change_listener(self, 'on_dropdown_change')
         # using ID 2 to update the dropdown
         self.hor_servers.append(2, self.dropdown)
+        # This makes the dropdown not be left
+        self.dropdown.style['display'] = 'block'
+        self.dropdown.style['margin'] = '10px auto'
+        self.dropdown.style['float'] = 'none'
+        self.wid.append(1, self.hor_servers)
+
 
     def create_num_row(self, param_name, description, range_min, range_max,
                        current_value, callback_cb_name, step):
         row = gui.TableRow()
-        param_name = gui.Label(150,
-                               10,
+        param_name = gui.Label(NAME_L_SIZE,
+                               FIELD_HEIGHT,
                                param_name)
         param_name.attributes['title'] = description
-        min_val = gui.Label(30,
-                            10,
+        min_val = gui.Label(MIN_L_SIZE,
+                            FIELD_HEIGHT,
                             str(range_min))
-        range_slider = gui.Slider(300, 10,
+        range_slider = gui.Slider(SLIDER_SIZE, FIELD_HEIGHT,
                                   defaultValue=current_value, min=range_min,
                                   max=range_max,
                                   step=step)
         range_slider.set_on_change_listener(self, callback_cb_name)
-        max_val = gui.Label(30,
-                            10,
+        max_val = gui.Label(MAX_L_SIZE,
+                            FIELD_HEIGHT,
                             str(range_max))
-        spin_val = gui.SpinBox(80, DEFAULT_HEIGHT,
+        spin_val = gui.SpinBox(EDIT2_SIZE, FIELD_HEIGHT,
                                defaultValue=current_value,
                                min=range_min, max=range_max, step=step)
         # https://github.com/dddomodossola/remi/issues/49
-        spin_val.attributes[spin_val.EVENT_ONKEYPRESS] = 'return event.charCode >= 48 && event.charCode <= 57'
+        # Added 46 as it's dot so we allow floating point values
+        spin_val.attributes[spin_val.EVENT_ONKEYPRESS] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46 || event.charCode == 13'
         spin_val.set_on_change_listener(self, callback_cb_name)
 
         item = gui.TableItem()
@@ -238,6 +273,8 @@ class MyApp(App):
         item = gui.TableItem()
         item.append(1, min_val)
         row.append(1, item)
+        min_val.style['float'] = 'none'
+        min_val.style['text-align'] = 'center'
 
         item = gui.TableItem()
         item.append(2, range_slider)
@@ -246,10 +283,15 @@ class MyApp(App):
         item = gui.TableItem()
         item.append(3, max_val)
         row.append(3, item)
+        max_val.style['float'] = 'none'
+        max_val.style['text-align'] = 'center'
 
         item = gui.TableItem()
         item.append(4, spin_val)
         row.append(4, item)
+        spin_val.style['display'] = 'block'
+        spin_val.style['margin'] = '10px auto'
+        spin_val.style['float'] = 'none'
 
         return row, [range_slider.set_value, spin_val.set_value]
 
@@ -263,11 +305,11 @@ class MyApp(App):
     def create_str_row(self, param_name, description,
                        current_value, callback_cb_name):
         row = gui.TableRow()
-        param_name = gui.Label(120,
-                               10,
+        param_name = gui.Label(NAME_L_SIZE,
+                               FIELD_HEIGHT,
                                param_name)
         param_name.attributes['title'] = description
-        text_input = gui.TextInput(300, DEFAULT_HEIGHT, single_line=True)
+        text_input = gui.TextInput(SLIDER_SIZE, FIELD_HEIGHT, single_line=True)
         text_input.set_text(current_value)
 
         text_input.set_on_enter_listener(self, callback_cb_name)
@@ -287,6 +329,9 @@ class MyApp(App):
         item = gui.TableItem()
         item.append(2, text_input)
         row.append(2, item)
+        text_input.style['display'] = 'block'
+        text_input.style['margin'] = '10px auto'
+        text_input.style['float'] = 'none'
 
         # Dummy item
         item = gui.TableItem()
@@ -303,11 +348,11 @@ class MyApp(App):
     def create_bool_row(self, param_name, description,
                         current_value, callback_cb_name):
         row = gui.TableRow()
-        param_name = gui.Label(120,
-                               10,
+        param_name = gui.Label(NAME_L_SIZE,
+                               FIELD_HEIGHT,
                                param_name)
         param_name.attributes['title'] = description
-        checkbox = gui.CheckBox(300, DEFAULT_HEIGHT, checked=current_value)
+        checkbox = gui.CheckBox(SLIDER_SIZE, FIELD_HEIGHT, checked=current_value)
         checkbox.set_on_change_listener(self, callback_cb_name)
 
         item = gui.TableItem()
@@ -322,6 +367,10 @@ class MyApp(App):
         item = gui.TableItem()
         item.append(2, checkbox)
         row.append(2, item)
+        # To center the checkbox
+        checkbox.style['float'] = 'none'
+        checkbox.style['margin'] = '0px auto'
+        checkbox.style['display'] = 'block'
 
         # Dummy item
         item = gui.TableItem()
@@ -338,11 +387,11 @@ class MyApp(App):
     def create_enum_row(self, param_name, description, current_value,
                         callback_cb_name, enums):
         row = gui.TableRow()
-        param_name = gui.Label(100,
-                               10,
+        param_name = gui.Label(NAME_L_SIZE,
+                               FIELD_HEIGHT,
                                param_name)
         param_name.attributes['title'] = description
-        dropdown = gui.DropDown(300, DEFAULT_HEIGHT)
+        dropdown = gui.DropDown(SLIDER_SIZE, FIELD_HEIGHT)
 
         # Fill dropdown
         for idx, enum in enumerate(enums):
@@ -351,7 +400,7 @@ class MyApp(App):
             name = enum['name']
             type_enum = enum['type']
             ddi_text = name + " (" + str(value) + ")"
-            ddi = gui.DropDownItem(300, DEFAULT_HEIGHT,
+            ddi = gui.DropDownItem(EDIT1_SIZE, FIELD_HEIGHT,
                                    ddi_text)
             ddi.attributes['title'] = description_enum
             dropdown.append(value, ddi)
@@ -370,6 +419,9 @@ class MyApp(App):
         item = gui.TableItem()
         item.append(2, dropdown)
         row.append(2, item)
+        dropdown.style['display'] = 'block'
+        dropdown.style['margin'] = '0px auto'
+        dropdown.style['float'] = 'none'
 
         # Dummy item
         item = gui.TableItem()
@@ -392,7 +444,8 @@ if __name__ == "__main__":
     server.DEBUG_MODE = 2
     app = server.Server(MyApp, start=True,
                         # address="192.168.200.132",
-                        address="127.0.0.1",
+                        address="0.0.0.0",
                         port=8081,
-                        multiple_instance=True)
+                        multiple_instance=True,
+                        start_browser=False)
     rospy.spin()
