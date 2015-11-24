@@ -35,6 +35,7 @@ import time
 import os
 import re
 from threading import Timer
+from time import time
 try:
     from urllib import unquote
     from urllib import quote
@@ -164,10 +165,17 @@ class WebSocketsHandler(socketserver.StreamRequestHandler):
 
     def read_next_message(self):
         log.debug('ws read_next_message')
+        start_read_time = time()
         try:
             length = self.rfile.read(2)
-        # If we have a timeout, nothing is wrong, keep going
         except socket.timeout:
+            end_read_time = time()
+            TCP_FIN_TIMEOUT_TIME = 60.0 # In linux, take from /proc/sys/net/ipv4/tcp_fin_timeout
+            if (end_read_time - start_read_time) < TCP_FIN_TIMEOUT_TIME:
+                # Socket may have died
+                return False
+            # Socket just did a timeout on read, we can try again
+            log.debug('read_next_message did an expected timeout')
             return True
         try:
             length = self.bytetonum(length[1]) & 127
