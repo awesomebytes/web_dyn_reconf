@@ -6,6 +6,7 @@ project(web_dyn_reconf)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -40,6 +41,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .msg/.srv/.action file to be processed
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
+
+# add dynamic reconfigure api
+generate_dynamic_reconfigure_options(
+  cfg/Test.cfg
+  )
+
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
@@ -121,10 +128,11 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(PROGRAMS
+  scripts/dyn_reconf_remi.py
+  scripts/testserver.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables and/or libraries for installation
 # install(TARGETS web_dyn_reconf web_dyn_reconf_node

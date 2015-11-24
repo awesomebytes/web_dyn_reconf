@@ -76,7 +76,7 @@ class MyApp(App):
             table.append(str(id(row)), row)
 
             for idx, param in enumerate(params_list):
-                if param['type'] == 'int' and param['edit_method'] != '':
+                if param['edit_method'] != '':
                     # Enum
                     param_name = param['name']
                     # WTF, really? the full enum dict is actually a string?
@@ -86,10 +86,12 @@ class MyApp(App):
                     current_value = curr_conf[param_name]
                     print "CURRENT VALUE OF ENUM IS: " + str(current_value)
                     enums = enum_dict['enum']
+                    enum_type = enums[0]['type'] # there must be at least one enum
                     # Create dynamically a method to be called
                     method_name = self.add_cb_to_class_by_param_name_and_type(
                                                                     param_name,
-                                                                    'enum')
+                                                                    'enum',
+                                                                    enum_type)
                     enum_wid, set_funcs = self.create_enum_row(param_name,
                                                                description,
                                                                current_value,
@@ -155,7 +157,7 @@ class MyApp(App):
         # Once the GUI is setup, setup the callback for new configs
         self.dyn_rec_client.set_config_callback(self.dyn_rec_conf_callback)
 
-    def add_cb_to_class_by_param_name_and_type(self, param_name, param_type):
+    def add_cb_to_class_by_param_name_and_type(self, param_name, param_type, enum_type=None):
         # Create dynamically a method to be called
         def make_method(parameter_name):
             def _method(new_value):
@@ -164,9 +166,14 @@ class MyApp(App):
                 if param_type == 'digit' or param_type == 'string':
                     value_to_set = new_value
                 elif param_type == 'enum':
-                    # Fix the value as its returned as a string and we need to set the int
-                    int_enum = new_value[new_value.find("(")+1:new_value.find(")")]
-                    value_to_set = int(int_enum)
+                    # Fix the value as per type
+                    value = new_value[new_value.find("(")+1:new_value.find(")")]
+                    if enum_type == 'int':
+                        value_to_set = int(value)
+                    elif enum_type == 'str':
+                        value_to_set = value
+                    elif enum_type == 'float':
+                        value_to_set = float(value)
                 elif param_type == 'bool':
                     # Fix the value as its returned as a string and we need a boolean
                     if new_value == 'true':
@@ -347,9 +354,9 @@ class MyApp(App):
             ddi = gui.DropDownItem(300, DEFAULT_HEIGHT,
                                    ddi_text)
             ddi.attributes['title'] = description_enum
-            dropdown.append(idx, ddi)
-            if idx == current_value:
-                dropdown.select_by_key(idx)
+            dropdown.append(value, ddi)
+            if value == current_value:
+                dropdown.select_by_key(value)
 
         item = gui.TableItem()
         item.append(0, param_name)
