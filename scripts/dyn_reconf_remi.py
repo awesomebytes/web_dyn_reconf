@@ -29,6 +29,7 @@ class MyApp(App):
 
     def __init__(self, *args):
         super(MyApp, self).__init__(*args)
+        rospy.spin()
 
     def main(self, name='world'):
         # the arguments are	width - height - layoutOrientationHorizontal
@@ -441,11 +442,12 @@ class MyApp(App):
 
 if __name__ == "__main__":
     rospy.init_node('web_dyn_reconf')
-    server.DEBUG_MODE = 2
-    app = server.Server(MyApp, start=True,
+
+    start(MyApp, start=True,
                         # address="192.168.200.132",
                         address="0.0.0.0",
                         port=8081,
                         multiple_instance=True,
-                        start_browser=False)
-    rospy.spin()
+                        start_browser=False,
+                        debug=True)
+    
