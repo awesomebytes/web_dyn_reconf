@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import remi.gui as gui
-import remi.server as server
+from remi.server import start
 from remi import App
 import rospy
 from ast import literal_eval
@@ -443,11 +443,11 @@ class MyApp(App):
 if __name__ == "__main__":
     rospy.init_node('web_dyn_reconf')
 
-    start(MyApp, start=True,
-                        # address="192.168.200.132",
-                        address="0.0.0.0",
-                        port=8081,
-                        multiple_instance=True,
-                        start_browser=False,
-                        debug=True)
-    
+    start(MyApp,
+          # address="192.168.200.132",
+          address="0.0.0.0",
+          port=8090,
+          multiple_instance=True,
+          start_browser=False,
+          debug=True)
+
