@@ -50,8 +50,6 @@ class MyApp(App):
         self.bt.style['float'] = 'none'
 
         self.refresh_servers()
-        print "Refreshed servers! returning main root widget"
-        #self.hor_servers.style['padding-bottom'] = '20px'
 
         # returning the root widget
         return self.wid
@@ -64,22 +62,17 @@ class MyApp(App):
                     set_func(new_config[k])
 
     def on_dropdown_change(self, value):
-        print "Dropdown changed to: " + str(value)
-
         # If we had a previous client, disconnect it
         if self.dyn_rec_client is not None:
             self.dyn_rec_client.close()
         # Get new client
-        print "Getting dyn rec client"
         self.dyn_rec_client = drc.Client(value, timeout=10.0)
-        print "Gotten"
 
         # Get a configuration which ensures we'll have the description too
         curr_conf = self.dyn_rec_client.get_configuration()
         self.gui_set_funcs_for_param = {}
         params_list = self.dyn_rec_client.group_description['parameters']
         if params_list is not None:
-            #table = gui.Table(DEFAULT_WIDTH, DEFAULT_HEIGHT * len(params_list))
             table = gui.Table()
             row = gui.TableRow()
             item = gui.TableTitle()
@@ -98,10 +91,8 @@ class MyApp(App):
             item.add_child(str(id(item)), 'Edit2')
             row.add_child(str(id(item)), item)
             table.add_child(str(id(row)), row)
-            print "Made header of table"
 
             for idx, param in enumerate(params_list):
-                print "idx, param: " + str(idx) + ", " + str(param)
                 if param['edit_method'] != '':
                     # Enum
                     param_name = param['name']
@@ -110,7 +101,6 @@ class MyApp(App):
                     enum_dict = literal_eval(enum_dict_as_str)
                     description = enum_dict['enum_description']
                     current_value = curr_conf[param_name]
-                    print "CURRENT VALUE OF ENUM IS: " + str(current_value)
                     enums = enum_dict['enum']
                     # there must be at least one enum
                     enum_type = enums[0]['type']
@@ -127,7 +117,6 @@ class MyApp(App):
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, enum_wid)
                 elif param['type'] == 'int' or param['type'] == 'double':
-                    print "int or double param..."
                     param_name = param['name']
                     range_min = param['min']
                     range_max = param['max']
@@ -139,7 +128,6 @@ class MyApp(App):
                         step = (range_max - range_min) / 100.0
 
                     # Create dynamically a method to be called
-                    print "Creating dynamically a method to be called"
                     method_name = self.add_cb_to_class_by_param_name_and_type(
                         param_name,
                         'digit')
@@ -153,7 +141,6 @@ class MyApp(App):
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, num_wid)
                 elif param['type'] == 'str':
-                    print "str param..."
                     param_name = param['name']
                     current_value = curr_conf[param_name]
                     description = param['description']
@@ -168,7 +155,6 @@ class MyApp(App):
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, str_wid)
                 elif param['type'] == 'bool':
-                    print "bool param..."
                     param_name = param['name']
                     current_value = curr_conf[param_name]
                     description = param['description']
@@ -195,8 +181,8 @@ class MyApp(App):
         # Create dynamically a method to be called
         def make_method(parameter_name):
             def _method(new_value):
-                print "Cb for param '" + parameter_name + "' called."
-                print "We got value: " + str(new_value)
+                # print "Cb for param '" + parameter_name + "' called."
+                # print "We got value: " + str(new_value)
                 if param_type == 'digit' or param_type == 'string':
                     value_to_set = new_value
                 elif param_type == 'enum':
@@ -233,17 +219,13 @@ class MyApp(App):
         self.dynamic_reconfigure_servers = find_reconfigure_services()
         rospy.loginfo("Found dynamic reconfigure servers:\n" +
                       str(self.dynamic_reconfigure_servers))
-        #self.dropdown = gui.DropDown(200, 20)
         self.dropdown = gui.DropDown()
-        #choose_ddi = gui.DropDownItem(200, 20, "Choose server...")
         choose_ddi = gui.DropDownItem("Choose server...")
         self.dropdown.add_child(0, choose_ddi)
         for idx, server_name in enumerate(self.dynamic_reconfigure_servers):
-            #ddi = gui.DropDownItem(200, 20, server_name)
             ddi = gui.DropDownItem(server_name)
             self.dropdown.add_child(idx + 1, ddi)
 
-        print "Made dropdown"
         self.dropdown.set_on_change_listener(self, 'on_dropdown_change')
         # using ID 2 to update the dropdown
         self.hor_servers.add_child(2, self.dropdown)
@@ -252,11 +234,9 @@ class MyApp(App):
         self.dropdown.style['margin'] = '10px auto'
         self.dropdown.style['float'] = 'none'
         self.wid.add_child(1, self.hor_servers)
-        print "Finished refresh servers"
 
     def create_num_row(self, param_name, description, range_min, range_max,
                        current_value, callback_cb_name, step):
-        print "Creating num_row"
         row = gui.TableRow()
         param_name = gui.Label(param_name,
                                width=NAME_L_SIZE,
@@ -276,13 +256,11 @@ class MyApp(App):
         spin_val = gui.SpinBox(width=EDIT2_SIZE, height=FIELD_HEIGHT,
                                defaultValue=current_value,
                                min=range_min, max=range_max, step=step)
-        print "Created thingies"
         # https://github.com/dddomodossola/remi/issues/49
         # Added 46 as it's dot so we allow floating point values
         spin_val.attributes[
             spin_val.EVENT_ONKEYPRESS] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46 || event.charCode == 13'
         spin_val.set_on_change_listener(self, callback_cb_name)
-        print  "set callback..."
         item = gui.TableItem()
         item.add_child(0, param_name)
         row.add_child(0, item)
@@ -309,8 +287,6 @@ class MyApp(App):
         spin_val.style['display'] = 'block'
         spin_val.style['margin'] = '10px auto'
         spin_val.style['float'] = 'none'
-
-        print "finished creating num_row"
 
         return row, [range_slider.set_value, spin_val.set_value]
 
@@ -461,14 +437,15 @@ class MyApp(App):
 
 
 if __name__ == "__main__":
-    rospy.init_node('web_dyn_reconf')
-    rospy.loginfo("Web dynamic reconfigure initalizing on 0.0.0.0:8090")
-    rospy.loginfo([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
-                  [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
+    rospy.init_node('web_dyn_reconf', anonymous=True)
+    ips_list = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
+        [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+    rospy.loginfo(
+        "Web dynamic reconfigure initalizing on port 8090 and ips: " + str(ips_list))
     start(MyApp,
           # address="192.168.200.132",
           address="0.0.0.0",
           port=8090,
-          multiple_instance=False,
+          multiple_instance=True,
           start_browser=False,
           debug=True)
