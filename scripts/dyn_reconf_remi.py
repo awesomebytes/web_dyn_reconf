@@ -61,7 +61,7 @@ class MyApp(App):
                 for set_func in self.gui_set_funcs_for_param[k]:
                     set_func(new_config[k])
 
-    def on_dropdown_change(self, value):
+    def on_dropdown_change(self, widget, value):
         # If we had a previous client, disconnect it
         if self.dyn_rec_client is not None:
             self.dyn_rec_client.close()
@@ -105,14 +105,14 @@ class MyApp(App):
                     # there must be at least one enum
                     enum_type = enums[0]['type']
                     # Create dynamically a method to be called
-                    method_name = self.add_cb_to_class_by_param_name_and_type(
+                    method_name, cb_method = self.add_cb_to_class_by_param_name_and_type(
                         param_name,
                         'enum',
                         enum_type)
                     enum_wid, set_funcs = self.create_enum_row(param_name,
                                                                description,
                                                                current_value,
-                                                               method_name,
+                                                               cb_method,
                                                                enums)
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, enum_wid)
@@ -128,7 +128,7 @@ class MyApp(App):
                         step = (range_max - range_min) / 100.0
 
                     # Create dynamically a method to be called
-                    method_name = self.add_cb_to_class_by_param_name_and_type(
+                    method_name, cb_method = self.add_cb_to_class_by_param_name_and_type(
                         param_name,
                         'digit')
 
@@ -137,7 +137,7 @@ class MyApp(App):
                                                              range_min,
                                                              range_max,
                                                              current_value,
-                                                             method_name, step)
+                                                             cb_method, step)
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, num_wid)
                 elif param['type'] == 'str':
@@ -145,13 +145,13 @@ class MyApp(App):
                     current_value = curr_conf[param_name]
                     description = param['description']
                     # Create dynamically a method to be called
-                    method_name = self.add_cb_to_class_by_param_name_and_type(
+                    method_name, cb_method = self.add_cb_to_class_by_param_name_and_type(
                         param_name,
                         'string')
                     str_wid, set_funcs = self.create_str_row(param_name,
                                                              description,
                                                              current_value,
-                                                             method_name)
+                                                             cb_method)
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, str_wid)
                 elif param['type'] == 'bool':
@@ -159,13 +159,13 @@ class MyApp(App):
                     current_value = curr_conf[param_name]
                     description = param['description']
                     # Create dynamically a method to be called
-                    method_name = self.add_cb_to_class_by_param_name_and_type(
+                    method_name, cb_method = self.add_cb_to_class_by_param_name_and_type(
                         param_name,
                         'bool')
                     bool_wid, set_funcs = self.create_bool_row(param_name,
                                                                description,
                                                                current_value,
-                                                               method_name)
+                                                               cb_method)
                     self.gui_set_funcs_for_param[param_name] = set_funcs
                     table.add_child(idx, bool_wid)
 
@@ -180,7 +180,7 @@ class MyApp(App):
     def add_cb_to_class_by_param_name_and_type(self, param_name, param_type, enum_type=None):
         # Create dynamically a method to be called
         def make_method(parameter_name):
-            def _method(new_value):
+            def _method(widget, new_value):
                 # print "Cb for param '" + parameter_name + "' called."
                 # print "We got value: " + str(new_value)
                 if param_type == 'digit' or param_type == 'string':
@@ -213,7 +213,7 @@ class MyApp(App):
         method_name = "callback_func_for_" + param_name
         cb_method = make_method(param_name)
         setattr(self, method_name, cb_method)
-        return method_name
+        return method_name, cb_method
 
     def refresh_servers(self):
         self.dynamic_reconfigure_servers = find_reconfigure_services()
@@ -226,7 +226,7 @@ class MyApp(App):
             ddi = gui.DropDownItem(server_name)
             self.dropdown.add_child(idx + 1, ddi)
 
-        self.dropdown.set_on_change_listener(self, 'on_dropdown_change')
+        self.dropdown.set_on_change_listener(self.on_dropdown_change)
         # using ID 2 to update the dropdown
         self.hor_servers.add_child(2, self.dropdown)
         # This makes the dropdown not be left
@@ -236,7 +236,7 @@ class MyApp(App):
         self.wid.add_child(1, self.hor_servers)
 
     def create_num_row(self, param_name, description, range_min, range_max,
-                       current_value, callback_cb_name, step):
+                       current_value, callback_cb, step):
         row = gui.TableRow()
         param_name = gui.Label(param_name,
                                width=NAME_L_SIZE,
@@ -249,7 +249,7 @@ class MyApp(App):
                                   defaultValue=current_value, min=range_min,
                                   max=range_max,
                                   step=step)
-        range_slider.set_on_change_listener(self, callback_cb_name)
+        range_slider.set_on_change_listener(callback_cb)
         max_val = gui.Label(str(range_max),
                             width=MAX_L_SIZE,
                             height=FIELD_HEIGHT)
@@ -260,7 +260,7 @@ class MyApp(App):
         # Added 46 as it's dot so we allow floating point values
         spin_val.attributes[
             spin_val.EVENT_ONKEYPRESS] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46 || event.charCode == 13'
-        spin_val.set_on_change_listener(self, callback_cb_name)
+        spin_val.set_on_change_listener(callback_cb)
         item = gui.TableItem()
         item.add_child(0, param_name)
         row.add_child(0, item)
@@ -298,7 +298,7 @@ class MyApp(App):
         # self.dyn_rec_client.update_configuration()
 
     def create_str_row(self, param_name, description,
-                       current_value, callback_cb_name):
+                       current_value, callback_cb):
         row = gui.TableRow()
         param_name = gui.Label(param_name,
                                width=NAME_L_SIZE,
@@ -308,7 +308,7 @@ class MyApp(App):
             width=SLIDER_SIZE, height=FIELD_HEIGHT, single_line=True)
         text_input.set_text(current_value)
 
-        text_input.set_on_enter_listener(self, callback_cb_name)
+        text_input.set_on_enter_listener(callback_cb)
 
         # set_button = gui.Button(80, DEFAULT_HEIGHT, text="Set")
         # set_button.set_on_click_listener(self, callback_cb_name)
@@ -342,7 +342,7 @@ class MyApp(App):
         return row, [text_input.set_text]
 
     def create_bool_row(self, param_name, description,
-                        current_value, callback_cb_name):
+                        current_value, callback_cb):
         row = gui.TableRow()
         param_name = gui.Label(param_name,
                                width=NAME_L_SIZE,
@@ -350,7 +350,7 @@ class MyApp(App):
         param_name.attributes['title'] = description
         checkbox = gui.CheckBox(
             width=SLIDER_SIZE, height=FIELD_HEIGHT, checked=current_value)
-        checkbox.set_on_change_listener(self, callback_cb_name)
+        checkbox.set_on_change_listener(callback_cb)
 
         item = gui.TableItem()
         item.add_child(0, param_name)
@@ -382,7 +382,7 @@ class MyApp(App):
         return row, [checkbox.set_value]
 
     def create_enum_row(self, param_name, description, current_value,
-                        callback_cb_name, enums):
+                        callback_cb, enums):
         row = gui.TableRow()
         param_name = gui.Label(param_name,
                                width=NAME_L_SIZE,
@@ -430,7 +430,7 @@ class MyApp(App):
         item.add_child(4, "")
         row.add_child(4, item)
 
-        dropdown.set_on_change_listener(self, callback_cb_name)
+        dropdown.set_on_change_listener(callback_cb)
 
         # return the row itself and the setter func list
         return row, [dropdown.select_by_key]
